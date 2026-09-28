@@ -40,9 +40,11 @@ CACHE_FILE = CACHE_DIR / "forecast.json"
 SNAPSHOT_FILES = [ROOT / "frontend/public/snapshot.json"]
 
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
-# Last good copy published with the website (regenerated daily). Used when the live fetch
-# fails, e.g. Open-Meteo rate-limiting a shared cloud IP with HTTP 429.
-SNAPSHOT_URL = os.environ.get("SNAPSHOT_URL", "https://gramvarsha-ai.vercel.app/snapshot.json")
+# Last good copy, regenerated daily by .github/workflows/refresh-snapshot.yml and committed
+# to the public repo. Used when the live fetch fails, e.g. Open-Meteo rate-limiting a shared
+# cloud IP with HTTP 429.
+SNAPSHOT_URL = os.environ.get(
+    "SNAPSHOT_URL", "https://raw.githubusercontent.com/piush365/gramvarsha/main/frontend/public/snapshot.json")
 RETRY_WAITS_S = (10, 30)     # backoff between attempts on 429 / 5xx
 BLOCK_MODEL = "gfs_global"
 FORECAST_DAYS = 5

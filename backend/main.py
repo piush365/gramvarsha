@@ -5,7 +5,7 @@
 Environment variables (all optional):
     ALLOWED_ORIGINS   comma-separated extra CORS origins (localhost and *.vercel.app allowed by default)
     REFRESH_HOURS     forecast refresh interval, default 3 (after a failed refresh: retry in 15 min)
-    SNAPSHOT_URL      published snapshot used when the live fetch fails (default: the Vercel site)
+    SNAPSHOT_URL      published snapshot used when the live fetch fails (default: the repo's daily copy on GitHub)
     DATABASE_URL      Postgres URL for feedback (default: SQLite in backend/cache/)
     GROQ_API_KEY      enables the optional LLM rewrite of advisories
     DISABLE_REFRESH   set to 1 to serve only the cached/snapshot forecast (tests, offline demos)
