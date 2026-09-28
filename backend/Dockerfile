@@ -18,7 +18,7 @@ COPY backend backend
 # Last-resort forecast copy (regenerated daily by GitHub Actions) for cold starts without network.
 COPY frontend/public/snapshot.json frontend/public/snapshot.json
 
-# Hugging Face Spaces runs containers as uid 1000 and expects port 7860.
+# Runs as a non-root user. The platform's $PORT is honoured (Render sets it); 7860 locally.
 RUN useradd -m -u 1000 app && mkdir -p backend/cache && chown -R app /app
 USER app
 EXPOSE 7860

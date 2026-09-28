@@ -143,19 +143,27 @@ Model settings are fixed in `ml/model.py` and are never tuned on the test months
 
 ## Deploy (free)
 
-**Backend → Hugging Face Spaces (Docker, free CPU, port 7860).**
-This was chosen over Render because the free tier has far more RAM and no card is needed.
+**Backend → Render free web service (Docker image, 512 MB RAM; the API uses ~260 MB).**
+Hugging Face now requires PRO for Docker Spaces, so the API image is pulled from Docker Hub instead.
 
-1. Create a write token at huggingface.co/settings/tokens.
-2. Run `HF_TOKEN=hf_... ./scripts/deploy_hf.sh <your-hf-user>/gramvarsha-api`
-   - Or push automatically: in GitHub, add secret `HF_TOKEN` and variable `HF_SPACE`. `.github/workflows/deploy-backend.yml` then deploys on every change.
-3. Optional: in the Space settings, add `DATABASE_URL` (Supabase) so feedback survives restarts, and `GROQ_API_KEY`.
-4. Check `https://<user>-gramvarsha-api.hf.space/api/health`.
+1. Create free accounts at hub.docker.com and render.com (no card needed).
+2. `docker login`, then `make deploy-api IMAGE=<dockerhub-user>/gramvarsha-api`.
+   If you want the Docker Hub repository private, create it as private first; you then add a registry credential in Render.
+3. In Render, go to New → Web Service → Existing image and enter `docker.io/<dockerhub-user>/gramvarsha-api:latest`. Pick instance type **Free**.
+4. Optional environment variables:
+   - `DATABASE_URL` (Supabase), so feedback survives restarts. The free disk is wiped on every redeploy and sleep.
+   - `GROQ_API_KEY`
+5. Copy the service's Deploy Hook URL. Later redeploys are then `RENDER_DEPLOY_HOOK=... make deploy-api IMAGE=...`.
+6. Check `https://<service>.onrender.com/api/health`.
+
+The free service sleeps after 15 minutes idle, and waking takes about a minute. In the meantime the
+website shows the bundled snapshot, then switches to live data on the next load. Open the site
+a minute before judging.
 
 **Frontend → Vercel (Hobby).**
 
 1. Import the GitHub repo and set **Root Directory = `frontend`**.
-2. Add env `NEXT_PUBLIC_API_URL=https://<user>-gramvarsha-api.hf.space`.
+2. Add env `NEXT_PUBLIC_API_URL=https://<service>.onrender.com`.
 3. Go to Settings → Deployment Protection and turn **Vercel Authentication off** so judges can open it.
 
 **Daily snapshot.** `.github/workflows/refresh-snapshot.yml` runs at 06:00 IST, regenerates the

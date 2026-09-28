@@ -2,7 +2,7 @@
 PY      := .venv/bin/python
 UVICORN := .venv/bin/uvicorn
 
-.PHONY: setup data dataset train evaluate retrain test api web dev snapshot docker lint
+.PHONY: setup data dataset train evaluate retrain test api web dev snapshot docker lint deploy-api
 
 setup:                 ## create the Python env and install everything
 	uv venv --python 3.12 .venv
@@ -44,3 +44,6 @@ snapshot:              ## regenerate the offline fallback in frontend/public/
 docker:                ## build and run the API image locally on :7860
 	docker build -f backend/Dockerfile -t gramvarsha-api .
 	docker run --rm -p 7860:7860 gramvarsha-api
+
+deploy-api:            ## push the API image to Docker Hub (IMAGE=user/gramvarsha-api) and redeploy Render
+	./scripts/deploy_render.sh $(IMAGE)
