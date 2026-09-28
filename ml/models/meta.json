@@ -1,0 +1,116 @@
+{
+  "features": [
+    "elevation_m",
+    "elev_diff_m",
+    "slope_deg",
+    "aspect_sin",
+    "aspect_cos",
+    "tpi_m",
+    "dist_river_km",
+    "dx_km",
+    "dy_km",
+    "doy_sin",
+    "doy_cos",
+    "block_tmax",
+    "block_tmin",
+    "block_rain",
+    "block_rh",
+    "block_wind"
+  ],
+  "bands": {
+    "tmax": {
+      "all": [
+        -1.2021533107757563,
+        1.2401439608633424
+      ]
+    },
+    "tmin": {
+      "all": [
+        -1.012155260430519,
+        1.1689105940187323
+      ]
+    },
+    "rain": {
+      "dry": [
+        -0.1745883870992493,
+        0.0523213531544466
+      ],
+      "wet": [
+        -8.917533188870951,
+        8.009506670540683
+      ]
+    },
+    "rh": {
+      "all": [
+        -5.301193586555766,
+        6.73316509723669
+      ]
+    },
+    "wind": {
+      "all": [
+        -3.348892538119535,
+        3.7487956036682935
+      ]
+    }
+  },
+  "info": {
+    "tmax": {
+      "variogram": "spherical",
+      "kriging_loo_rmse": {
+        "spherical": 0.11328563910004232,
+        "exponential": 0.11345649496902227
+      },
+      "xgb_rounds": 77
+    },
+    "tmin": {
+      "variogram": "spherical",
+      "kriging_loo_rmse": {
+        "spherical": 0.10633254162377821,
+        "exponential": 0.10817528269418993
+      },
+      "xgb_rounds": 419
+    },
+    "rain": {
+      "variogram": "spherical",
+      "kriging_loo_rmse": {
+        "spherical": 0.02114705891687893,
+        "exponential": 0.02191222836596038
+      },
+      "xgb_rounds": 47
+    },
+    "rh": {
+      "variogram": "spherical",
+      "kriging_loo_rmse": {
+        "spherical": 0.6065682317389384,
+        "exponential": 0.6160852838297467
+      },
+      "xgb_rounds": 187
+    },
+    "wind": {
+      "variogram": "spherical",
+      "kriging_loo_rmse": {
+        "spherical": 0.4233494318596251,
+        "exponential": 0.425975591599091
+      },
+      "xgb_rounds": 155
+    }
+  },
+  "best_iteration": {
+    "tmax": 76,
+    "tmin": 418,
+    "rain": 46,
+    "rh": 186,
+    "wind": 154
+  },
+  "xgb_params": {
+    "objective": "reg:squarederror",
+    "max_depth": 4,
+    "eta": 0.05,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "min_child_weight": 20,
+    "lambda": 1.0,
+    "seed": 42,
+    "nthread": 4
+  }
+}

@@ -7,3 +7,7 @@ scipy==1.16.2
 shapely==2.1.2
 pyproj==3.7.2
 pytest==8.4.2
+xgboost==3.0.5
+pykrige==1.7.2
+scikit-learn==1.7.2
+shap==0.48.0
