@@ -50,6 +50,7 @@ class Downscaler:
         self.boosters: dict[str, xgb.Booster] = {}
         self.bands: dict[str, dict] = {}
         self.info: dict = {}
+        self.use_xgb: dict[str, bool] = {}      # per variable, decided on validation weeks
 
     # ------------------------------------------------------------------ fit --
     def fit(self, train: pd.DataFrame, val: pd.DataFrame, terrain: pd.DataFrame,
@@ -70,8 +71,24 @@ class Downscaler:
                               "xgb_rounds": booster.best_iteration + 1}
             if verbose:
                 print(f"   {var:5s} variogram={field.variogram:11s} xgb_rounds={booster.best_iteration + 1}")
+        self._choose_methods(val, terrain, verbose)
         self._fit_bands(val, terrain)
         return self
+
+    def _choose_methods(self, val: pd.DataFrame, terrain: pd.DataFrame, verbose: bool):
+        """Per variable, keep the XGBoost step only if it beats kriging alone on the
+        VALIDATION weeks. Rule fixed before looking at the test period. (Validation was
+        also used for early stopping, which slightly favours XGBoost -- so a variable
+        where XGBoost still loses here is one where it genuinely adds noise.)"""
+        pred = self.predict(val, terrain)
+        for var in self.boosters:
+            t = val[f"truth_{var}"].to_numpy()
+            rmse = {m: float(np.sqrt(np.mean((pred[f"{m}_{var}"].to_numpy() - t) ** 2))) for m in ("krig", "xgb")}
+            self.use_xgb[var] = rmse["xgb"] < rmse["krig"]
+            self.info[var]["val_rmse"] = rmse
+            self.info[var]["method"] = "kriging+xgboost" if self.use_xgb[var] else "kriging"
+            if verbose:
+                print(f"   {var:5s} val RMSE kriging={rmse['krig']:.3f} +xgb={rmse['xgb']:.3f} -> {self.info[var]['method']}")
 
     def _kriged(self, var, df, X) -> np.ndarray:
         months = pd.to_datetime(df.date).dt.month.to_numpy()
@@ -86,9 +103,9 @@ class Downscaler:
         """Empirical 10-90 % error band from the VALIDATION period (not the test period)."""
         pred = self.predict(val, terrain)
         for var in self.boosters:
-            err = val[f"truth_{var}"].to_numpy() - pred[f"xgb_{var}"].to_numpy()
+            err = val[f"truth_{var}"].to_numpy() - pred[f"final_{var}"].to_numpy()
             if var == "rain":
-                wet = pred["xgb_rain"].to_numpy() >= RAIN_WET_MM
+                wet = pred["final_rain"].to_numpy() >= RAIN_WET_MM
                 self.bands[var] = {
                     "dry": [float(np.percentile(err[~wet], 10)), float(np.percentile(err[~wet], 90))],
                     "wet": [float(np.percentile(err[wet], 10)), float(np.percentile(err[wet], 90))],
@@ -104,7 +121,9 @@ class Downscaler:
           block_<v>  raw block value (baseline a)
           bias_<v>   block + taluka-wide monthly mean residual (bias-corrected baseline)
           krig_<v>   block + kriged residual            (baseline b)
-          xgb_<v>    block + kriged + XGBoost           (GramVarsha, method c)
+          xgb_<v>    block + kriged + XGBoost           (method c)
+          final_<v>  what GramVarsha serves: xgb_<v>, or krig_<v> for variables where
+                     XGBoost did not beat kriging on the validation weeks
         """
         X = build_features(df.id, df.date, block_frame(df), terrain) if X is None else X
         months = pd.to_datetime(df.date).dt.month.to_numpy()
@@ -123,6 +142,7 @@ class Downscaler:
             if var == "rh":   # humidity is physically bounded
                 for m in ("bias", "krig", "xgb"):
                     out[f"{m}_rh"] = out[f"{m}_rh"].clip(0, 100)
+            out[f"final_{var}"] = out[f"xgb_{var}" if self.use_xgb.get(var, True) else f"krig_{var}"]
         return out
 
     def contributions(self, var: str, X: pd.DataFrame) -> pd.DataFrame:
@@ -146,6 +166,7 @@ class Downscaler:
         (path / "meta.json").write_text(json.dumps({
             "features": FEATURES, "bands": self.bands, "info": self.info,
             "best_iteration": {v: b.best_iteration for v, b in self.boosters.items()},
+            "use_xgb": self.use_xgb,
             "xgb_params": XGB_PARAMS,
         }, indent=2))
 
@@ -162,5 +183,5 @@ class Downscaler:
             b.set_attr(best_iteration=str(best))
             self.boosters[var] = b
             self.fields[var] = ResidualField.from_dict(fields[var])
-        self.bands, self.info = meta["bands"], meta["info"]
+        self.bands, self.info, self.use_xgb = meta["bands"], meta["info"], meta["use_xgb"]
         return self

@@ -60,7 +60,12 @@
         "spherical": 0.11328563910004232,
         "exponential": 0.11345649496902227
       },
-      "xgb_rounds": 77
+      "xgb_rounds": 77,
+      "val_rmse": {
+        "krig": 1.2032469755647057,
+        "xgb": 1.073624022717818
+      },
+      "method": "kriging+xgboost"
     },
     "tmin": {
       "variogram": "spherical",
@@ -68,7 +73,12 @@
         "spherical": 0.10633254162377821,
         "exponential": 0.10817528269418993
       },
-      "xgb_rounds": 419
+      "xgb_rounds": 419,
+      "val_rmse": {
+        "krig": 1.0771762820336983,
+        "xgb": 0.952544590701714
+      },
+      "method": "kriging+xgboost"
     },
     "rain": {
       "variogram": "spherical",
@@ -76,7 +86,12 @@
         "spherical": 0.02114705891687893,
         "exponential": 0.02191222836596038
       },
-      "xgb_rounds": 47
+      "xgb_rounds": 47,
+      "val_rmse": {
+        "krig": 3.922575184526265,
+        "xgb": 3.9203599192094996
+      },
+      "method": "kriging+xgboost"
     },
     "rh": {
       "variogram": "spherical",
@@ -84,7 +99,12 @@
         "spherical": 0.6065682317389384,
         "exponential": 0.6160852838297467
       },
-      "xgb_rounds": 187
+      "xgb_rounds": 187,
+      "val_rmse": {
+        "krig": 5.325328563664967,
+        "xgb": 4.757222111759675
+      },
+      "method": "kriging+xgboost"
     },
     "wind": {
       "variogram": "spherical",
@@ -92,7 +112,12 @@
         "spherical": 0.4233494318596251,
         "exponential": 0.425975591599091
       },
-      "xgb_rounds": 155
+      "xgb_rounds": 155,
+      "val_rmse": {
+        "krig": 4.66568510233517,
+        "xgb": 2.962894814942637
+      },
+      "method": "kriging+xgboost"
     }
   },
   "best_iteration": {
@@ -101,6 +126,13 @@
     "rain": 46,
     "rh": 186,
     "wind": 154
+  },
+  "use_xgb": {
+    "tmax": true,
+    "tmin": true,
+    "rain": true,
+    "rh": true,
+    "wind": true
   },
   "xgb_params": {
     "objective": "reg:squarederror",

@@ -16,7 +16,9 @@ Methods compared, per variable:
   bias     block + taluka-wide monthly mean correction (removes only the block's
            systematic bias -- shows how much of any gain is NOT spatial)
   krig     block + kriged monthly residual
-  xgb      block + kriged + XGBoost (GramVarsha, Tier A)
+  xgb      block + kriged + XGBoost
+  final    what GramVarsha serves (Tier A): xgb, or krig where XGBoost did not beat
+           kriging on the validation weeks (decided in training, not here)
 
 Writes ml/metrics.json for the /validation page. Numbers are reported as they come.
 """
@@ -34,7 +36,7 @@ from ml.model import MODELS_DIR, Downscaler, block_frame
 from ml.physics import physics_downscale
 from ml.train import load_dataset
 
-METHODS = ["block", "physics", "bias", "krig", "xgb"]
+METHODS = ["block", "physics", "bias", "krig", "xgb", "final"]
 N_FOLDS = 5
 FOLD_SEED = 7
 OUT = MODELS_DIR.parent / "metrics.json"
@@ -103,7 +105,7 @@ def main():
     for pid, g in pred.groupby("id"):
         t = test.loc[g.index]
         per_village[pid] = {v: {m: round(scores(t[f"truth_{v}"].to_numpy(), g[f"{m}_{v}"].to_numpy())["rmse"], 3)
-                                for m in ("block", "xgb")} for v in VARIABLES}
+                                for m in ("block", "final")} for v in VARIABLES}
 
     # Feature importance = mean |SHAP| over the test rows, per variable.
     importance = {}
@@ -128,6 +130,18 @@ def main():
     sp = pd.concat(spatial_preds).loc[test.index]
     spatial = score_table(sp, test)
 
+    # Plain verdicts for the UI, straight from the numbers above.
+    verdict = {}
+    for v in VARIABLES:
+        s_, t_ = spatial[v], temporal[v]
+        verdict[v] = {
+            "method": model.info[v]["method"],
+            "beats_block": s_["final"]["rmse"] < s_["block"]["rmse"] and t_["final"]["rmse"] < t_["block"]["rmse"],
+            "beats_bias_corrected": s_["final"]["rmse"] < s_["bias"]["rmse"],
+            # Village-to-village skill must hold for villages the model never saw.
+            "resolves_village_differences": s_["spatial_pattern_rmse"]["final"] < 0.9 * s_["spatial_pattern_rmse"]["block"],
+        }
+
     meta = load_block_meta()
     OUT.write_text(json.dumps({
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -141,6 +155,7 @@ def main():
         "temporal": temporal,
         "spatial": spatial,
         "per_village_temporal_rmse": per_village,
+        "verdict": verdict,
         "feature_importance": importance,
         "shap_check_max_abs_diff": shap_diff,
         "model_info": model.info,
@@ -149,22 +164,27 @@ def main():
             "Truth is ECMWF IFS 9 km (pseudo ground truth), not station observations.",
             "The 47 villages fall in 17 IFS grid cells, so nearby villages share a truth value.",
             "Block value is archived GFS 0.25 deg at the taluka centroid (IMD block-forecast proxy).",
+            "Archived forecasts are the first 1-2 days of each GFS run: scores apply to day 0-1 lead; "
+            "days 2-4 in the live app are not validated.",
+            "Where 'resolves_village_differences' is false, the gain is a better block-level forecast, "
+            "not village-level detail (this is the case for daily max temperature and rainfall).",
         ],
     }, indent=1))
     print_table(temporal, spatial)
+    print("\nverdict:", json.dumps(verdict, indent=1))
     print(f"wrote {OUT}")
 
 
 def print_table(temporal: dict, spatial: dict):
-    print("\nRMSE on the test months (lower is better). Improvement = xgb vs block.")
-    head = f"{'variable':6s} {'holdout':8s} " + " ".join(f"{m:>8s}" for m in METHODS) + "   xgb vs block   xgb vs bias"
+    print("\nRMSE on the test months (lower is better). Improvement = final vs block.")
+    head = f"{'variable':6s} {'holdout':8s} " + " ".join(f"{m:>8s}" for m in METHODS) + "  final vs block  final vs bias"
     print(head)
     print("-" * len(head))
     for v in VARIABLES:
         for name, tab in (("time", temporal), ("village", spatial)):
             r = {m: tab[v][m]["rmse"] for m in METHODS}
-            gain = 100 * (1 - r["xgb"] / r["block"])
-            gain_b = 100 * (1 - r["xgb"] / r["bias"])
+            gain = 100 * (1 - r["final"] / r["block"])
+            gain_b = 100 * (1 - r["final"] / r["bias"])
             print(f"{v:6s} {name:8s} " + " ".join(f"{r[m]:8.2f}" for m in METHODS)
                   + f"   {gain:+10.1f} %   {gain_b:+9.1f} %")
     print("\nSpatial-pattern RMSE (errors in village-to-village DIFFERENCES on the same day):")
