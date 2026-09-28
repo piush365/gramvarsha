@@ -1,0 +1,31 @@
+{
+  "fetched_at": "2026-09-28T18:20:49+00:00",
+  "block": {
+    "name": "Miraj",
+    "lat": 16.85985,
+    "lon": 74.69277,
+    "area_km2": 929.0,
+    "elevation_m": 593.0
+  },
+  "period": {
+    "start": "2024-09-01",
+    "end": "2026-08-31",
+    "timezone": "Asia/Kolkata"
+  },
+  "variables": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "precipitation_sum",
+    "relative_humidity_2m_mean",
+    "wind_speed_10m_max"
+  ],
+  "sources": {
+    "block_value": "Open-Meteo Historical Forecast API, model=gfs_global, elevation=nan (IMD-equivalent coarse forecast proxy)",
+    "truth": "Open-Meteo Archive API, model=ecmwf_ifs (~9 km), elevation=nan (pseudo ground truth; IMD AWS/ARG CSVs plug in via data/imd_import/)",
+    "elevation": "Open-Meteo Elevation API (Copernicus GLO-90 DEM)",
+    "villages_boundary_rivers": "OpenStreetMap (Overpass: relation 9742028; Nominatim: river relations [337204]), ODbL"
+  },
+  "counts": {
+    "panchayats": 47
+  }
+}
