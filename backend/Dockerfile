@@ -15,6 +15,8 @@ COPY ml/__init__.py ml/features.py ml/kriging.py ml/model.py ml/physics.py ml/ex
 COPY ml/models ml/models
 COPY data/manifest.json data/panchayats.csv data/terrain.csv data/village_names.csv data/*.geojson data/
 COPY backend backend
+# Last-resort forecast copy (regenerated daily by GitHub Actions) for cold starts without network.
+COPY frontend/public/snapshot.json frontend/public/snapshot.json
 
 # Hugging Face Spaces runs containers as uid 1000 and expects port 7860.
 RUN useradd -m -u 1000 app && mkdir -p backend/cache && chown -R app /app
