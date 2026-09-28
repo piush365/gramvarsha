@@ -5,7 +5,13 @@
     "lat": 16.85985,
     "lon": 74.69277,
     "area_km2": 929.0,
-    "elevation_m": 593.0
+    "elevation_m": 593.0,
+    "gfs_cell": {
+      "lat": 16.810936,
+      "lon": 74.64844,
+      "elevation_m": 572.0,
+      "size_deg": 0.25
+    }
   },
   "period": {
     "start": "2024-09-01",

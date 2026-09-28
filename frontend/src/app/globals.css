@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+/* Brand palette (fixed by the brief) + a few derived neutrals. */
+@theme {
+  --color-navy: #1b3a5c;
+  --color-navy-soft: #e6ecf2;
+  --color-forest: #5a8f4e;
+  --color-forest-soft: #e9f1e6;
+  --color-amber: #e3a33b;
+  --color-amber-soft: #fbf1dc;
+  --color-paper: #fafaf7;
+  --color-card: #ffffff;
+  --color-ink: #16222e;
+  --color-muted: #5b6875;
+  --color-line: #dfe3e6;
+  --color-danger: #b4432c;
+
+  --font-sans: var(--font-plex), var(--font-plex-deva), system-ui, sans-serif;
+  --font-cond: var(--font-plex-cond), var(--font-plex), sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-mr: var(--font-tiro-mr), var(--font-plex-deva), serif;
+  --font-hi: var(--font-tiro-hi), var(--font-plex-deva), serif;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Survey-map eyebrow labels: condensed caps. Used for section labels only. */
+.eyebrow {
+  font-family: var(--font-cond);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+/* --- Map ------------------------------------------------------------------ */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  font-family: var(--font-sans);
+  background: #eef0ec;
+}
+
+/* Basemap greyed out so the forecast colours carry the map. */
+.gv-basemap {
+  filter: grayscale(1) contrast(0.85) brightness(1.08);
+}
+
+/* The block <-> downscaled toggle animates the polygon fills (the key moment). */
+.gv-cell {
+  transition: fill 700ms cubic-bezier(0.3, 0.7, 0.2, 1), stroke-width 150ms;
+}
+
+.gv-tier {
+  font-family: var(--font-cond);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  width: 14px;
+  height: 14px;
+  text-align: center;
+  border-radius: 999px;
+  background: rgb(27 58 92 / 0.8);
+  color: white;
+  pointer-events: none;
+}
+.gv-tier.tier-B,
+.gv-tier.tier-C {
+  background: var(--color-amber);
+  color: var(--color-ink);
+}
+
+.gv-cell-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #8a5a10;
+  font-family: var(--font-cond);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.gv-cell-label::before {
+  display: none;
+}
+
+/* --- Spread strip ------------------------------------------------------- */
+.gv-dot {
+  transition: transform 700ms cubic-bezier(0.3, 0.7, 0.2, 1), fill 700ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gv-cell,
+  .gv-dot {
+    transition: none;
+  }
+}
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(90deg, #eceee9 0%, #f6f7f3 50%, #eceee9 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 6px;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

@@ -391,6 +391,11 @@ def main():
     print(f"3/4 Block history ({BLOCK_MODEL} at centroid {block['lat']}, {block['lon']})")
     fetch_block_history(block, args.refresh)
 
+    # Where the coarse forecast actually comes from: the GFS grid cell covering the centroid.
+    bh = pd.read_parquet(RAW / "block_history.parquet")
+    block["gfs_cell"] = {"lat": float(bh.grid_lat[0]), "lon": float(bh.grid_lon[0]),
+                         "elevation_m": float(bh.grid_elev_m[0]), "size_deg": 0.25}
+
     print(f"4/4 Village truth history ({TRUTH_MODEL}, {len(pts)} points)")
     fetch_truth_history(pts, args.refresh)
 

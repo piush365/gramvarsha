@@ -8,3 +8,6 @@ __pycache__/
 .pytest_cache/
 data/processed/
 backend/cache/
+frontend/node_modules/
+frontend/.next/
+*.tsbuildinfo
