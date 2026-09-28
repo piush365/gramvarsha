@@ -11,6 +11,9 @@ explains every correction with SHAP, and turns the result into crop- and stage-s
 **English, Hindi and Marathi**. The advice goes out by SMS, WhatsApp and voice, and farmer
 feedback comes back through replies. Everything runs on free, open data.
 
+**Live demo:** https://gramvarsha-ai.vercel.app · API: https://gramvarsha-api.onrender.com/docs
+(The free API sleeps when idle; the site shows its daily snapshot for the first minute while it wakes.)
+
 ![Dashboard](docs/screenshots/dashboard.png)
 
 | Block forecast: every panchayat identical | GramVarsha: each panchayat its own value |
