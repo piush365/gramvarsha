@@ -62,3 +62,13 @@ export function fmtDay(date: string, lead: number): string {
   if (lead === 1) return "Tomorrow";
   return new Date(date + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", day: "numeric" });
 }
+
+// Diverging scale for "% error change vs block": blue = better, amber = worse, grey = same.
+export const DIVERGING = { worse: "#E3A33B", mid: "#E5E7EA", better: "#1F5AAE" };
+
+export function improvementColour(pct: number, maxAbs: number) {
+  const t = Math.max(-1, Math.min(1, pct / maxAbs));
+  const [ca, cb] = [hex(DIVERGING.mid), hex(t >= 0 ? DIVERGING.better : DIVERGING.worse)];
+  const f = Math.abs(t);
+  return `rgb(${ca.map((c, i) => Math.round(c + (cb[i] - c) * f)).join(" ")})`;
+}

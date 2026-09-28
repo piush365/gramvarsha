@@ -164,6 +164,9 @@ def test_api_end_to_end(client):
     assert client.get("/api/advisory?panchayat_id=x&crop=grapes&stage=flowering&lang=mr").status_code == 404
     assert client.get(f"/api/advisory?panchayat_id={p['id']}&crop=rice").status_code == 422
 
+    al = client.get("/api/alerts?crop=grapes&stage=flowering").json()["alerts"]
+    assert set(al) == {q["id"] for q in d["panchayats"]} and all(al.values())
+
     r = client.post("/api/feedback", json={"panchayat_id": p["id"], "date": "2026-07-10", "rating": "not_accurate"})
     assert r.status_code == 200
     assert client.get("/api/feedback/summary").json()["total"] == 1

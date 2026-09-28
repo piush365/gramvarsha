@@ -139,6 +139,14 @@ def advisory(panchayat_id: str, crop: Crop = "grapes", stage: Stage = "flowering
     return adv
 
 
+@app.get("/api/alerts")
+def alerts(crop: Crop = "grapes", stage: Stage = "flowering"):
+    """Alert codes for every panchayat for one crop/stage (officer view)."""
+    d = _data()
+    return {"crop": crop, "stage": stage, "generated_at": d["generated_at"],
+            "alerts": {p["id"]: advisory_for(p, crop, stage, "en")["alerts"] for p in d["panchayats"]}}
+
+
 @app.get("/api/advisory/audio")
 def advisory_audio(panchayat_id: str, crop: Crop = "grapes", stage: Stage = "flowering", lang: Lang = "mr"):
     adv = advisory_for(_panchayat(panchayat_id), crop, stage, lang)

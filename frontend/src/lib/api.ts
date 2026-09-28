@@ -56,6 +56,26 @@ export async function loadAdvisory(id: string, crop: string, stage: string, lang
   return { data: hit, source: "snapshot" as Source };
 }
 
+/** Alert codes for every panchayat (officer view). Falls back to the snapshot advisories. */
+export async function loadAlerts(crop: string, stage: string, preferSnapshot = false): Promise<Loaded<Record<string, string[]>>> {
+  if (!preferSnapshot) {
+    try {
+      const r = await getJSON<{ alerts: Record<string, string[]> }>(`${API_URL}/api/alerts?${new URLSearchParams({ crop, stage })}`);
+      return { data: r.alerts, source: "live" };
+    } catch {
+      /* fall through */
+    }
+  }
+  advisoryCache ??= getJSON<Record<string, Advisory>>("/snapshot-advisories.json", 30000);
+  const all = await advisoryCache;
+  const out: Record<string, string[]> = {};
+  for (const [k, a] of Object.entries(all)) {
+    const [id, c, s, lang] = k.split("|");
+    if (c === crop && s === stage && lang === "en") out[id] = a.alerts;
+  }
+  return { data: out, source: "snapshot" };
+}
+
 export const audioUrl = (id: string, crop: string, stage: string, lang: Lang) =>
   `${API_URL}/api/advisory/audio?${new URLSearchParams({ panchayat_id: id, crop, stage, lang })}`;
 
