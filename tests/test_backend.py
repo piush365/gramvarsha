@@ -177,7 +177,22 @@ def test_failed_refresh_serves_stale(client, monkeypatch):
     def boom(*a, **k):
         raise ConnectionError("Open-Meteo unreachable")
     monkeypatch.setattr(fc, "fetch_block_forecast", boom)
+    monkeypatch.setattr(fc, "fetch_remote_snapshot", boom)
     from backend.main import service
     assert service.refresh() is False
     h = client.get("/api/health").json()
     assert h["ok"] and h["stale"] is True and "unreachable" in h["last_error"]
+
+
+def test_failed_refresh_adopts_newer_remote_snapshot(client, monkeypatch):
+    from backend.main import service
+    newer = {**service.data, "generated_at": "2999-01-01T00:00:00+00:00"}
+
+    def rate_limited(*a, **k):
+        raise ConnectionError("429 Too Many Requests")
+    monkeypatch.setattr(fc, "fetch_block_forecast", rate_limited)
+    monkeypatch.setattr(fc, "fetch_remote_snapshot", lambda *a, **k: dict(newer))
+    assert service.refresh() is False
+    h = client.get("/api/health").json()
+    assert h["stale"] is True and h["generated_at"].startswith("2999")
+    assert client.get("/api/panchayats").json()["served_from"] == fc.SNAPSHOT_URL

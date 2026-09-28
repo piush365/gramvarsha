@@ -4,7 +4,8 @@
 
 Environment variables (all optional):
     ALLOWED_ORIGINS   comma-separated extra CORS origins (localhost and *.vercel.app allowed by default)
-    REFRESH_HOURS     forecast refresh interval, default 3
+    REFRESH_HOURS     forecast refresh interval, default 3 (after a failed refresh: retry in 15 min)
+    SNAPSHOT_URL      published snapshot used when the live fetch fails (default: the Vercel site)
     DATABASE_URL      Postgres URL for feedback (default: SQLite in backend/cache/)
     GROQ_API_KEY      enables the optional LLM rewrite of advisories
     DISABLE_REFRESH   set to 1 to serve only the cached/snapshot forecast (tests, offline demos)
@@ -37,14 +38,15 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname
 log = logging.getLogger("gramvarsha.api")
 
 REFRESH_HOURS = float(os.environ.get("REFRESH_HOURS", "3"))
+RETRY_MINUTES = 15
 service: ForecastService | None = None
 feedback: FeedbackStore | None = None
 
 
-async def refresh_loop():
+async def refresh_loop(last_ok: bool):
     while True:
-        await asyncio.sleep(REFRESH_HOURS * 3600)
-        await asyncio.to_thread(service.refresh)
+        await asyncio.sleep(REFRESH_HOURS * 3600 if last_ok else RETRY_MINUTES * 60)
+        last_ok = await asyncio.to_thread(service.refresh)
 
 
 @asynccontextmanager
@@ -56,8 +58,8 @@ async def lifespan(app: FastAPI):
     if os.environ.get("DISABLE_REFRESH") == "1":
         service.load_cached()
     else:
-        await asyncio.to_thread(service.refresh)
-        task = asyncio.create_task(refresh_loop())
+        ok = await asyncio.to_thread(service.refresh)
+        task = asyncio.create_task(refresh_loop(ok))
     yield
     if task:
         task.cancel()

@@ -16,6 +16,8 @@ from __future__ import annotations
 import json
 import logging
 import math
+import os
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -38,6 +40,10 @@ CACHE_FILE = CACHE_DIR / "forecast.json"
 SNAPSHOT_FILES = [ROOT / "frontend/public/snapshot.json"]
 
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+# Last good copy published with the website (regenerated daily). Used when the live fetch
+# fails, e.g. Open-Meteo rate-limiting a shared cloud IP with HTTP 429.
+SNAPSHOT_URL = os.environ.get("SNAPSHOT_URL", "https://gramvarsha-ai.vercel.app/snapshot.json")
+RETRY_WAITS_S = (10, 30)     # backoff between attempts on 429 / 5xx
 BLOCK_MODEL = "gfs_global"
 FORECAST_DAYS = 5
 VALIDATED_LEADS = 2          # day 0 and day 1 match the archive used for validation
@@ -78,12 +84,20 @@ def fetch_block_forecast(block: dict, timeout: float = 20) -> tuple[pd.DataFrame
     GFS run can still start on the previous calendar day.
     """
     today = (datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).date()
-    r = requests.get(FORECAST_URL, timeout=timeout, params={
+    params = {
         "start_date": today.isoformat(), "end_date": (today + timedelta(days=FORECAST_DAYS - 1)).isoformat(),
         "latitude": block["lat"], "longitude": block["lon"], "elevation": "nan",
         "daily": ",".join(field for field, _, _ in VARIABLES.values()),
         "models": BLOCK_MODEL, "timezone": TZ,
-    })
+    }
+    for wait in (*RETRY_WAITS_S, None):
+        r = requests.get(FORECAST_URL, timeout=timeout, params=params)
+        if r.status_code not in (429, 500, 502, 503, 504) or wait is None:
+            break
+        retry_after = r.headers.get("Retry-After", "")
+        wait = min(int(retry_after), 60) if retry_after.isdigit() else wait
+        log.warning("Open-Meteo HTTP %s; retrying in %ss", r.status_code, wait)
+        time.sleep(wait)
     r.raise_for_status()
     body = r.json()
     daily = pd.DataFrame(body["daily"]).rename(columns={"time": "date"})
@@ -91,6 +105,13 @@ def fetch_block_forecast(block: dict, timeout: float = 20) -> tuple[pd.DataFrame
     if daily[BLOCK_FEATURES].isna().any().any():
         raise ValueError("block forecast has missing values")
     return daily, float(body["elevation"])
+
+
+def fetch_remote_snapshot(timeout: float = 20) -> dict:
+    """The website's published snapshot (same pipeline, run daily elsewhere)."""
+    r = requests.get(SNAPSHOT_URL, timeout=timeout)
+    r.raise_for_status()
+    return r.json()
 
 
 # ---------------------------------------------------------------------------
@@ -226,6 +247,20 @@ class ForecastService:
                 except Exception as e:
                     log.warning("could not read %s: %s", path, e)
 
+    def use_remote_snapshot_if_newer(self) -> bool:
+        """After a failed live fetch: adopt the published snapshot if it is newer than what we serve."""
+        try:
+            snap = fetch_remote_snapshot()
+        except Exception as e:
+            log.warning("remote snapshot unavailable: %s", e)
+            return False
+        if self.data and snap.get("generated_at", "") <= self.data.get("generated_at", ""):
+            return False
+        snap.update({"stale": True, "stale_since": snap.get("generated_at"), "served_from": SNAPSHOT_URL})
+        self.data = snap
+        log.info("serving remote snapshot generated %s", snap.get("generated_at"))
+        return True
+
     def refresh(self) -> bool:
         """Fetch + downscale. On any failure keep the previous data, marked stale."""
         try:
@@ -257,6 +292,7 @@ class ForecastService:
             elif not self.data.get("stale"):
                 self.data["stale"] = True
                 self.data["stale_since"] = self.data["generated_at"]
+            self.use_remote_snapshot_if_newer()
             return False
 
     def panchayat(self, pid: str) -> dict | None:
