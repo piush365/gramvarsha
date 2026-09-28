@@ -1,0 +1,14 @@
+# Serving dependencies only (no shap / scikit-learn: SHAP values come from XGBoost's
+# built-in TreeSHAP, verified identical to shap.TreeExplainer in ml/evaluate.py).
+fastapi==0.118.0
+uvicorn[standard]==0.37.0
+pydantic==2.11.9
+requests==2.32.5
+numpy==2.3.3
+pandas==2.3.2
+scipy==1.16.2
+xgboost-cpu==3.0.5
+pykrige==1.7.2
+gTTS==2.5.4
+# Only needed when DATABASE_URL points at Postgres (e.g. Supabase):
+psycopg[binary]==3.2.10
